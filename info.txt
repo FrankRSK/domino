@@ -1,0 +1,12 @@
+Ein browserbasiertes Dominospiel, das direkt im Webbrowser gespielt werden kann.
+
+Du trittst gegen einen bis fünf Computergegner an, deren Anzahl Du vor Spielbeginn auswählst. Ziel ist es, als erster Spieler alle eigenen Dominosteine abzulegen. Nach den klassischen Regeln beginnt der Spieler mit dem höchsten Doppelstein. Anschließend legen die Spieler abwechselnd passende Steine an eines der beiden Enden der ausliegenden Kette an.
+
+Wenn Du keinen passenden Stein hast, musst Du passen. Das Spiel endet, sobald ein Spieler alle Steine abgelegt hat. Sollte das Spiel blockiert sein, weil kein Spieler mehr anlegen kann, gewinnt derjenige mit der niedrigsten Augenzahl auf den verbleibenden Steinen.
+
+Das Spiel bietet einige Komfortfunktionen:
+
+- Spielbare Steine in Deiner Hand werden hervorgehoben.
+- Es gibt Soundeffekte für Aktionen wie das Leggen oder Passen.
+- Eine Statistik zählt Deine gewonnenen Spiele und errechnet eine Siegesrate.
+- Die Computergegner nutzen eine verbesserte KI für anspruchsvollere Züge.
