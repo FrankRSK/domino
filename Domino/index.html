@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dominospiel, Version 0.03</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #2c5530, #4a7c59);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: white;
+        }
+
+        .game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+        }
+
+        .game-setup {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .player-count {
+            margin-bottom: 15px;
+        }
+
+        .player-count label {
+            font-size: 1.2rem;
+            margin-right: 10px;
+        }
+
+        .player-count select {
+            padding: 8px 15px;
+            border-radius: 8px;
+            border: none;
+            font-size: 1rem;
+            background: white;
+            color: #333;
+        }
+
+        .start-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            color: white;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255,107,107,0.3);
+        }
+
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255,107,107,0.4);
+        }
+
+        .game-board {
+            display: none;
+            flex: 1;
+        }
+
+        .board-area {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            min-height: 300px;
+            position: relative;
+            overflow: auto;
+        }
+
+        .domino-line {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 5px;
+            min-height: 200px;
+        }
+
+        .domino {
+            width: 60px;
+            height: 120px;
+            background: #f8f9fa;
+            border: 2px solid #333;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .domino.horizontal {
+            width: 120px;
+            height: 60px;
+            flex-direction: row;
+        }
+
+        .domino:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        }
+
+        .domino.playable {
+            border-color: #4CAF50;
+            box-shadow: 0 0 15px rgba(76,175,80,0.5);
+        }
+
+        .domino.played {
+            animation: playDomino 0.5s ease-out;
+        }
+
+        @keyframes playDomino {
+            0% { transform: scale(1.2) rotate(5deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+
+        .domino-half {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+            position: relative;
+        }
+
+        .domino-half:first-child {
+            border-bottom: 1px solid #333;
+        }
+
+        .domino.horizontal .domino-half:first-child {
+            border-bottom: none;
+            border-right: 1px solid #333;
+        }
+
+        .dots {
+            display: grid;
+            gap: 3px;
+            width: 100%;
+            height: 100%;
+            padding: 8px;
+        }
+
+        .dots.dots-1 { grid-template: 1fr / 1fr; }
+        .dots.dots-2 { grid-template: 1fr 1fr / 1fr; }
+        .dots.dots-3 { grid-template: 1fr 1fr 1fr / 1fr; }
+        .dots.dots-4 { grid-template: 1fr 1fr / 1fr 1fr; }
+        .dots.dots-5 { grid-template: 1fr 1fr 1fr / 1fr 1fr; }
+        .dots.dots-6 { grid-template: 1fr 1fr 1fr / 1fr 1fr; }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background: #333;
+            border-radius: 50%;
+            justify-self: center;
+            align-self: center;
+        }
+
+        .dots.dots-3 .dot:nth-child(2) { grid-column: 1; grid-row: 2; }
+        .dots.dots-5 .dot:nth-child(1) { grid-column: 1; grid-row: 1; }
+        .dots.dots-5 .dot:nth-child(2) { grid-column: 2; grid-row: 1; }
+        .dots.dots-5 .dot:nth-child(3) { grid-column: 1; grid-row: 2; grid-column: span 2; justify-self: center; }
+        .dots.dots-5 .dot:nth-child(4) { grid-column: 1; grid-row: 3; }
+        .dots.dots-5 .dot:nth-child(5) { grid-column: 2; grid-row: 3; }
+
+        .player-area {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .player-hand {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .player-hand .domino {
+            width: 50px;
+            height: 100px;
+        }
+
+        .player-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .player-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .player-name.current-player {
+            color: #4CAF50;
+            text-shadow: 0 0 10px rgba(76,175,80,0.5);
+        }
+
+        .domino-count {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+        }
+
+        .game-status {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 1.1rem;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            z-index: 100;
+            background: rgba(0,0,0,0.8);
+            padding: 15px 25px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-pass {
+            background: #ff9800;
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
+        }
+
+        .btn-pass:hover {
+            background: #f57c00;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+        }
+
+        .btn-pass:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-new-game {
+            background: #4CAF50;
+            color: white;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn-new-game:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .winner-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            font-size: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 1000;
+            animation: celebrateWin 1s ease-out;
+        }
+
+        @keyframes celebrateWin {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        .sound-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            padding: 10px;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .sound-toggle:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 768px) {
+            .domino {
+                width: 40px;
+                height: 80px;
+            }
+
+            .domino.horizontal {
+                width: 80px;
+                height: 40px;
+            }
+
+            .player-hand .domino {
+                width: 35px;
+                height: 70px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .controls {
+                bottom: 10px;
+                padding: 10px 15px;
+            }
+
+            .btn {
+                padding: 8px 16px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="sound-toggle" onclick="toggleSound()">🔊</button>
+    
+    <div class="game-container">
+        <div class="header">
+            <h1>🎲 Dominospiel 🎲</h1>
+        </div>
+
+        <div class="game-setup" id="gameSetup">
+            <div class="player-count">
+                <label for="playerCount">Anzahl Spieler (inkl. dir):</label>
+                <select id="playerCount">
+                    <option value="2">2 Spieler</option>
+                    <option value="3">3 Spieler</option>
+                    <option value="4" selected>4 Spieler</option>
+                    <option value="5">5 Spieler</option>
+                    <option value="6">6 Spieler</option>
+                </select>
+            </div>
+            <button class="start-btn" onclick="startGame()">Spiel starten</button>
+        </div>
+
+        <div class="game-board" id="gameBoard">
+            <div class="game-status" id="gameStatus">
+                Spiel wird geladen...
+            </div>
+
+            <div class="board-area">
+                <div class="domino-line" id="dominoLine">
+                    <!-- Gespielte Dominosteine werden hier angezeigt -->
+                </div>
+            </div>
+
+            <div id="playersArea">
+                <!-- Spielerbereiche werden hier generiert -->
+            </div>
+        </div>
+    </div>
+
+    <div class="controls" id="gameControls" style="display: none;">
+        <button class="btn btn-pass" id="passBtn" onclick="passTurn()" disabled>Passen</button>
+        <button class="btn btn-new-game" onclick="newGame()">Neues Spiel</button>
+    </div>
+    </div>
+
+    <script>
+        class DominoGame {
+            constructor() {
+                this.players = [];
+                this.currentPlayerIndex = 0;
+                this.dominoLine = [];
+                this.leftEnd = null;
+                this.rightEnd = null;
+                this.gameEnded = false;
+                this.soundEnabled = true;
+                this.selectedDomino = null;
+                this.possibleMoves = [];
+                
+                this.initializeDominoes();
+            }
+
+            initializeDominoes() {
+                this.allDominoes = [];
+                for (let i = 0; i <= 6; i++) {
+                    for (let j = i; j <= 6; j++) {
+                        this.allDominoes.push({ left: i, right: j, id: `${i}-${j}` });
+                    }
+                }
+            }
+
+            shuffleDominoes() {
+                for (let i = this.allDominoes.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [this.allDominoes[i], this.allDominoes[j]] = [this.allDominoes[j], this.allDominoes[i]];
+                }
+            }
+
+            dealDominoes(playerCount) {
+                this.shuffleDominoes();
+                const dominoesPerPlayer = playerCount <= 2 ? 7 : 6;
+                
+                for (let i = 0; i < playerCount; i++) {
+                    const playerDominoes = this.allDominoes.slice(i * dominoesPerPlayer, (i + 1) * dominoesPerPlayer);
+                    this.players.push({
+                        name: i === 0 ? 'Du' : `Computer ${i}`,
+                        dominoes: playerDominoes,
+                        isComputer: i > 0
+                    });
+                }
+                
+                this.boneyard = this.allDominoes.slice(playerCount * dominoesPerPlayer);
+            }
+
+            findHighestDouble() {
+                let highestDouble = -1;
+                let playerWithHighestDouble = -1;
+                
+                for (let i = 0; i < this.players.length; i++) {
+                    for (let domino of this.players[i].dominoes) {
+                        if (domino.left === domino.right && domino.left > highestDouble) {
+                            highestDouble = domino.left;
+                            playerWithHighestDouble = i;
+                        }
+                    }
+                }
+                
+                return playerWithHighestDouble;
+            }
+
+            startFirstTurn() {
+                const firstPlayer = this.findHighestDouble();
+                if (firstPlayer !== -1) {
+                    this.currentPlayerIndex = firstPlayer;
+                    
+                    // Finde und spiele den höchsten Doppelstein
+                    let highestDouble = -1;
+                    let dominoToPlay = null;
+                    
+                    for (let domino of this.players[firstPlayer].dominoes) {
+                        if (domino.left === domino.right && domino.left > highestDouble) {
+                            highestDouble = domino.left;
+                            dominoToPlay = domino;
+                        }
+                    }
+                    
+                    if (dominoToPlay) {
+                        this.playDomino(dominoToPlay, 'right');
+                        this.nextTurn();
+                    }
+                } else {
+                    // Fallback: Spieler mit höchstem Einzelstein beginnt
+                    this.currentPlayerIndex = 0;
+                }
+            }
+
+            canPlayDomino(domino) {
+                if (this.dominoLine.length === 0) return true;
+                
+                return domino.left === this.leftEnd || domino.right === this.leftEnd ||
+                       domino.left === this.rightEnd || domino.right === this.rightEnd;
+            }
+
+            playDomino(domino, side) {
+                const player = this.players[this.currentPlayerIndex];
+                const dominoIndex = player.dominoes.findIndex(d => d.id === domino.id);
+                
+                if (dominoIndex === -1) return false;
+                
+                // Entferne Domino aus Spielerhand
+                player.dominoes.splice(dominoIndex, 1);
+                
+                // Spiele Sound
+                this.playSound('place');
+                
+                if (this.dominoLine.length === 0) {
+                    // Erster Stein
+                    this.dominoLine.push(domino);
+                    this.leftEnd = domino.left;
+                    this.rightEnd = domino.right;
+                } else {
+                    // Bestimme Orientierung basierend auf Position
+                    let playedDomino = { ...domino };
+                    
+                    if (side === 'left') {
+                        if (domino.right === this.leftEnd) {
+                            // Domino passt so wie er ist
+                        } else if (domino.left === this.leftEnd) {
+                            // Domino muss gedreht werden
+                            playedDomino = { left: domino.right, right: domino.left, id: domino.id };
+                        }
+                        this.dominoLine.unshift(playedDomino);
+                        this.leftEnd = playedDomino.left;
+                    } else {
+                        if (domino.left === this.rightEnd) {
+                            // Domino passt so wie er ist
+                        } else if (domino.right === this.rightEnd) {
+                            // Domino muss gedreht werden
+                            playedDomino = { left: domino.right, right: domino.left, id: domino.id };
+                        }
+                        this.dominoLine.push(playedDomino);
+                        this.rightEnd = playedDomino.right;
+                    }
+                }
+                
+                this.updateDisplay();
+                
+                // Prüfe auf Spielende
+                if (player.dominoes.length === 0) {
+                    this.endGame(player.name);
+                    return true;
+                }
+                
+                return true;
+            }
+
+            getPossibleMoves(player) {
+                const moves = [];
+                
+                for (let domino of player.dominoes) {
+                    if (this.dominoLine.length === 0) {
+                        moves.push({ domino, side: 'right' });
+                    } else {
+                        if (domino.left === this.leftEnd || domino.right === this.leftEnd) {
+                            moves.push({ domino, side: 'left' });
+                        }
+                        if (domino.left === this.rightEnd || domino.right === this.rightEnd) {
+                            moves.push({ domino, side: 'right' });
+                        }
+                    }
+                }
+                
+                return moves;
+            }
+
+            computerTurn() {
+                const player = this.players[this.currentPlayerIndex];
+                const possibleMoves = this.getPossibleMoves(player);
+                
+                if (possibleMoves.length === 0) {
+                    // Computer muss passen
+                    this.playSound('pass');
+                    this.updateStatus(`${player.name} muss passen!`);
+                    setTimeout(() => this.nextTurn(), 1500);
+                    return;
+                }
+                
+                // Einfache KI: Spiele zufälligen möglichen Zug
+                const randomMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+                
+                setTimeout(() => {
+                    this.playDomino(randomMove.domino, randomMove.side);
+                    this.nextTurn();
+                }, 1000);
+            }
+
+            nextTurn() {
+                this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
+                
+                if (this.gameEnded) return;
+                
+                this.updateDisplay();
+                
+                // Prüfe auf blockiertes Spiel
+                let totalPossibleMoves = 0;
+                for (let player of this.players) {
+                    totalPossibleMoves += this.getPossibleMoves(player).length;
+                }
+                
+                if (totalPossibleMoves === 0) {
+                    this.endGameByBlock();
+                    return;
+                }
+                
+                const currentPlayer = this.players[this.currentPlayerIndex];
+                if (currentPlayer.isComputer) {
+                    this.updateStatus(`${currentPlayer.name} ist am Zug...`);
+                    this.computerTurn();
+                } else {
+                    this.updateStatus('Du bist am Zug! Wähle einen Dominostein.');
+                    this.highlightPlayableDominoes();
+                }
+            }
+
+            highlightPlayableDominoes() {
+                const player = this.players[0]; // Menschlicher Spieler
+                const moves = this.getPossibleMoves(player);
+                this.possibleMoves = moves;
+                
+                // Entferne alte Hervorhebungen
+                document.querySelectorAll('.domino.playable').forEach(d => d.classList.remove('playable'));
+                
+                // Hervorhebung der spielbaren Steine
+                for (let move of moves) {
+                    const dominoElement = document.querySelector(`[data-domino-id="${move.domino.id}"]`);
+                    if (dominoElement) {
+                        dominoElement.classList.add('playable');
+                    }
+                }
+                
+                // Aktiviere/Deaktiviere Pass-Button
+                const passBtn = document.getElementById('passBtn');
+                passBtn.disabled = moves.length > 0;
+            }
+
+            handleDominoClick(domino) {
+                if (this.gameEnded) return;
+                if (this.players[this.currentPlayerIndex].isComputer) return;
+                
+                const moves = this.possibleMoves.filter(move => move.domino.id === domino.id);
+                if (moves.length === 0) return;
+                
+                if (moves.length === 1) {
+                    // Nur eine Möglichkeit
+                    this.playDomino(moves[0].domino, moves[0].side);
+                    this.nextTurn();
+                } else {
+                    // Mehrere Möglichkeiten - zeige Auswahl
+                    this.showSideSelection(moves);
+                }
+            }
+
+            showSideSelection(moves) {
+                // Einfache Implementierung: Spiele an der rechten Seite
+                this.playDomino(moves[0].domino, moves[0].side);
+                this.nextTurn();
+            }
+
+            passTurn() {
+                if (this.gameEnded) return;
+                if (this.players[this.currentPlayerIndex].isComputer) return;
+                
+                const player = this.players[this.currentPlayerIndex];
+                const possibleMoves = this.getPossibleMoves(player);
+                
+                if (possibleMoves.length === 0) {
+                    this.playSound('pass');
+                    this.updateStatus(`${player.name} muss passen!`);
+                    setTimeout(() => this.nextTurn(), 1000);
+                }
+            }
+
+            endGame(winner) {
+                this.gameEnded = true;
+                this.playSound('win');
+                this.showWinnerMessage(`🎉 ${winner} hat gewonnen! 🎉`);
+            }
+
+            endGameByBlock() {
+                this.gameEnded = true;
+                
+                // Finde Spieler mit wenigsten Punkten
+                let minPoints = Infinity;
+                let winner = null;
+                
+                for (let player of this.players) {
+                    let points = 0;
+                    for (let domino of player.dominoes) {
+                        points += domino.left + domino.right;
+                    }
+                    if (points < minPoints) {
+                        minPoints = points;
+                        winner = player.name;
+                    }
+                }
+                
+                this.playSound('win');
+                this.showWinnerMessage(`🎉 Spiel blockiert! ${winner} gewinnt mit den wenigsten Punkten! 🎉`);
+            }
+
+            showWinnerMessage(message) {
+                const winnerDiv = document.createElement('div');
+                winnerDiv.className = 'winner-message';
+                winnerDiv.innerHTML = message + '<br><br><button class="btn btn-new-game" onclick="newGame()">Neues Spiel</button>';
+                document.body.appendChild(winnerDiv);
+                
+                setTimeout(() => {
+                    if (winnerDiv.parentNode) {
+                        winnerDiv.parentNode.removeChild(winnerDiv);
+                    }
+                }, 5000);
+            }
+
+            updateDisplay() {
+                this.updateDominoLine();
+                this.updatePlayerAreas();
+            }
+
+            updateDominoLine() {
+                const dominoLineElement = document.getElementById('dominoLine');
+                dominoLineElement.innerHTML = '';
+                
+                for (let i = 0; i < this.dominoLine.length; i++) {
+                    const domino = this.dominoLine[i];
+                    const dominoElement = this.createDominoElement(domino, true);
+                    dominoElement.classList.add('played');
+                    dominoLineElement.appendChild(dominoElement);
+                }
+            }
+
+            updatePlayerAreas() {
+                const playersArea = document.getElementById('playersArea');
+                playersArea.innerHTML = '';
+                
+                for (let i = 0; i < this.players.length; i++) {
+                    const player = this.players[i];
+                    const playerDiv = document.createElement('div');
+                    playerDiv.className = 'player-area';
+                    
+                    const playerInfo = document.createElement('div');
+                    playerInfo.className = 'player-info';
+                    
+                    const playerName = document.createElement('div');
+                    playerName.className = 'player-name';
+                    if (i === this.currentPlayerIndex) {
+                        playerName.classList.add('current-player');
+                    }
+                    playerName.textContent = player.name;
+                    
+                    const dominoCount = document.createElement('div');
+                    dominoCount.className = 'domino-count';
+                    dominoCount.textContent = `${player.dominoes.length} Steine`;
+                    
+                    playerInfo.appendChild(playerName);
+                    playerInfo.appendChild(dominoCount);
+                    
+                    const playerHand = document.createElement('div');
+                    playerHand.className = 'player-hand';
+                    
+                    if (i === 0) {
+                        // Zeige Dominosteine des menschlichen Spielers
+                        for (let domino of player.dominoes) {
+                            const dominoElement = this.createDominoElement(domino, false);
+                            dominoElement.addEventListener('click', () => this.handleDominoClick(domino));
+                            playerHand.appendChild(dominoElement);
+                        }
+                    } else {
+                        // Zeige Rückseiten für Computer-Spieler
+                        for (let j = 0; j < player.dominoes.length; j++) {
+                            const dominoBack = document.createElement('div');
+                            dominoBack.className = 'domino';
+                            dominoBack.style.background = 'linear-gradient(45deg, #333, #555)';
+                            dominoBack.innerHTML = '<div style="color: white; font-size: 2rem; display: flex; align-items: center; justify-content: center; height: 100%;">?</div>';
+                            playerHand.appendChild(dominoBack);
+                        }
+                    }
+                    
+                    playerDiv.appendChild(playerInfo);
+                    playerDiv.appendChild(playerHand);
+                    playersArea.appendChild(playerDiv);
+                }
+            }
+
+            createDominoElement(domino, isOnBoard = false) {
+                const dominoElement = document.createElement('div');
+                dominoElement.className = 'domino';
+                dominoElement.setAttribute('data-domino-id', domino.id);
+                
+                if (isOnBoard && this.dominoLine.length > 3) {
+                    dominoElement.classList.add('horizontal');
+                }
+                
+                const leftHalf = document.createElement('div');
+                leftHalf.className = 'domino-half';
+                leftHalf.appendChild(this.createDots(domino.left));
+                
+                const rightHalf = document.createElement('div');
+                rightHalf.className = 'domino-half';
+                rightHalf.appendChild(this.createDots(domino.right));
+                
+                dominoElement.appendChild(leftHalf);
+                dominoElement.appendChild(rightHalf);
+                
+                return dominoElement;
+            }
+
+            createDots(number) {
+                const dotsContainer = document.createElement('div');
+                dotsContainer.className = `dots dots-${number}`;
+                
+                for (let i = 0; i < number; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'dot';
+                    dotsContainer.appendChild(dot);
+                }
+                
+                return dotsContainer;
+            }
+
+            updateStatus(message) {
+                document.getElementById('gameStatus').textContent = message;
+            }
+
+            playSound(type) {
+                if (!this.soundEnabled) return;
+                
+                // Erstelle Audio-Kontext für Sound-Effekte
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                
+                switch (type) {
+                    case 'place':
+                        oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(220, audioContext.currentTime + 0.1);
+                        break;
+                    case 'pass':
+                        oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+                        break;
+                    case 'win':
+                        oscillator.frequency.setValueAtTime(523, audioContext.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(659, audioContext.currentTime + 0.2);
+                        oscillator.frequency.exponentialRampToValueAtTime(784, audioContext.currentTime + 0.4);
+                        break;
+                }
+                
+                oscillator.type = 'sine';
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + (type === 'win' ? 0.5 : 0.2));
+                
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + (type === 'win' ? 0.5 : 0.2));
+            }
+        }
+
+        // Globale Variablen
+        let game = null;
+
+        function startGame() {
+            const playerCount = parseInt(document.getElementById('playerCount').value);
+            
+            game = new DominoGame();
+            game.dealDominoes(playerCount);
+            
+            document.getElementById('gameSetup').style.display = 'none';
+            document.getElementById('gameBoard').style.display = 'block';
+            document.getElementById('gameControls').style.display = 'flex';
+            
+            game.updateDisplay();
+            game.startFirstTurn();
+        }
+
+        function newGame() {
+            // Entferne Winner-Message falls vorhanden
+            const winnerMessage = document.querySelector('.winner-message');
+            if (winnerMessage) {
+                winnerMessage.remove();
+            }
+            
+            document.getElementById('gameSetup').style.display = 'block';
+            document.getElementById('gameBoard').style.display = 'none';
+            document.getElementById('gameControls').style.display = 'none';
+            
+            game = null;
+        }
+
+        function passTurn() {
+            if (game) {
+                game.passTurn();
+            }
+        }
+
+        function toggleSound() {
+            if (game) {
+                game.soundEnabled = !game.soundEnabled;
+                const soundButton = document.querySelector('.sound-toggle');
+                soundButton.textContent = game.soundEnabled ? '🔊' : '🔇';
+            }
+        }
+
+        // Tastatur-Shortcuts
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'p' || event.key === 'P') {
+                passTurn();
+            } else if (event.key === 'n' || event.key === 'N') {
+                if (game && game.gameEnded) {
+                    newGame();
+                }
+            }
+        });
+
+        // Touch-Unterstützung für mobile Geräte
+        document.addEventListener('touchstart', function(event) {
+            // Verhindere Zoom bei Doppel-Tap
+            if (event.touches.length > 1) {
+                event.preventDefault();
+            }
+        });
+
+        // Responsive Design Anpassungen
+        window.addEventListener('resize', function() {
+            if (game) {
+                game.updateDisplay();
+            }
+        });
+
+        // Spiel-Regeln und Hilfe
+        function showRules() {
+            const rules = `
+            DOMINO SPIELREGELN:
+            
+            🎯 ZIEL: Sei der erste Spieler, der alle Dominosteine ablegt!
+            
+            📋 SPIELABLAUF:
+            1. Jeder Spieler erhält 6-7 Dominosteine
+            2. Der Spieler mit dem höchsten Doppelstein beginnt
+            3. Steine müssen an passende Zahlen angelegt werden
+            4. Wenn du nicht legen kannst, musst du passen
+            5. Das Spiel endet, wenn ein Spieler alle Steine abgelegt hat
+            
+            🎮 STEUERUNG:
+            • Klicke auf einen spielbaren Stein zum Ablegen
+            • Drücke 'P' zum Passen
+            • Drücke 'N' für ein neues Spiel (nach Spielende)
+            
+            🏆 GEWINNBEDINGUNGEN:
+            • Alle Steine ablegen = Sofortiger Sieg
+            • Spiel blockiert = Spieler mit wenigsten Punkten gewinnt
+            `;
+            alert(rules);
+        }
+
+        // Füge Regel-Button hinzu
+        document.addEventListener('DOMContentLoaded', function() {
+            const rulesButton = document.createElement('button');
+            rulesButton.textContent = '❓';
+            rulesButton.className = 'sound-toggle';
+            rulesButton.style.top = '70px';
+            rulesButton.onclick = showRules;
+            rulesButton.title = 'Spielregeln anzeigen';
+            document.body.appendChild(rulesButton);
+        });
+
+        // Erweiterte KI für Computer-Spieler
+        class AdvancedAI {
+            static chooseBestMove(game, playerIndex) {
+                const player = game.players[playerIndex];
+                const possibleMoves = game.getPossibleMoves(player);
+                
+                if (possibleMoves.length === 0) return null;
+                if (possibleMoves.length === 1) return possibleMoves[0];
+                
+                // Bewertungssystem für Züge
+                let bestMove = possibleMoves[0];
+                let bestScore = -1;
+                
+                for (let move of possibleMoves) {
+                    let score = 0;
+                    
+                    // Bevorzuge Doppelsteine
+                    if (move.domino.left === move.domino.right) {
+                        score += 10;
+                    }
+                    
+                    // Bevorzuge hohe Zahlen
+                    score += move.domino.left + move.domino.right;
+                    
+                    // Bevorzuge Steine, die weitere Züge ermöglichen
+                    const numbers = [move.domino.left, move.domino.right];
+                    for (let num of numbers) {
+                        let count = 0;
+                        for (let otherDomino of player.dominoes) {
+                            if (otherDomino.id !== move.domino.id && 
+                                (otherDomino.left === num || otherDomino.right === num)) {
+                                count++;
+                            }
+                        }
+                        score += count * 5;
+                    }
+                    
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMove = move;
+                    }
+                }
+                
+                return bestMove;
+            }
+        }
+
+        // Aktualisiere Computer-KI
+        DominoGame.prototype.computerTurn = function() {
+            const player = this.players[this.currentPlayerIndex];
+            const bestMove = AdvancedAI.chooseBestMove(this, this.currentPlayerIndex);
+            
+            if (!bestMove) {
+                // Computer muss passen
+                this.playSound('pass');
+                this.updateStatus(`${player.name} muss passen!`);
+                setTimeout(() => this.nextTurn(), 1500);
+                return;
+            }
+            
+            setTimeout(() => {
+                this.playDomino(bestMove.domino, bestMove.side);
+                this.nextTurn();
+            }, Math.random() * 1000 + 500); // Zufällige Denkzeit
+        };
+
+        // Statistiken-System
+        class GameStats {
+            constructor() {
+                this.gamesPlayed = parseInt(localStorage.getItem('domino_games_played') || '0');
+                this.gamesWon = parseInt(localStorage.getItem('domino_games_won') || '0');
+                this.totalDominoesPlayed = parseInt(localStorage.getItem('domino_total_played') || '0');
+            }
+            
+            addGame(won) {
+                this.gamesPlayed++;
+                if (won) this.gamesWon++;
+                
+                localStorage.setItem('domino_games_played', this.gamesPlayed.toString());
+                localStorage.setItem('domino_games_won', this.gamesWon.toString());
+            }
+            
+            addDominoPlayed() {
+                this.totalDominoesPlayed++;
+                localStorage.setItem('domino_total_played', this.totalDominoesPlayed.toString());
+            }
+            
+            getWinRate() {
+                return this.gamesPlayed > 0 ? (this.gamesWon / this.gamesPlayed * 100).toFixed(1) : 0;
+            }
+            
+            reset() {
+                this.gamesPlayed = 0;
+                this.gamesWon = 0;
+                this.totalDominoesPlayed = 0;
+                localStorage.removeItem('domino_games_played');
+                localStorage.removeItem('domino_games_won');
+                localStorage.removeItem('domino_total_played');
+            }
+        }
+
+        const gameStats = new GameStats();
+
+        // Aktualisiere Spiel-Ende Methoden
+        DominoGame.prototype.endGame = function(winner) {
+            this.gameEnded = true;
+            this.playSound('win');
+            
+            // Statistiken aktualisieren
+            if (winner === 'Du') {
+                gameStats.addGame(true);
+            } else {
+                gameStats.addGame(false);
+            }
+            
+            const statsText = `Spiele: ${gameStats.gamesPlayed} | Siege: ${gameStats.gamesWon} | Siegesrate: ${gameStats.getWinRate()}%`;
+            this.showWinnerMessage(`🎉 ${winner} hat gewonnen! 🎉<br><small>${statsText}</small>`);
+        };
+
+        // Erweitere playDomino Methode für Statistiken
+        const originalPlayDomino = DominoGame.prototype.playDomino;
+        DominoGame.prototype.playDomino = function(domino, side) {
+            const result = originalPlayDomino.call(this, domino, side);
+            if (result && this.currentPlayerIndex === 0) {
+                gameStats.addDominoPlayed();
+            }
+            return result;
+        };
+
+        // Partikel-Effekt für Gewinn
+        function createConfetti() {
+            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#dda0dd'];
+            
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.style.position = 'fixed';
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.top = '-10px';
+                    confetti.style.width = '10px';
+                    confetti.style.height = '10px';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.zIndex = '9999';
+                    confetti.style.borderRadius = '50%';
+                    confetti.style.pointerEvents = 'none';
+                    
+                    document.body.appendChild(confetti);
+                    
+                    confetti.animate([
+                        { transform: 'translateY(0px) rotate(0deg)', opacity: 1 },
+                        { transform: `translateY(100vh) rotate(360deg)`, opacity: 0 }
+                    ], {
+                        duration: 3000 + Math.random() * 2000,
+                        easing: 'ease-in'
+                    }).onfinish = () => confetti.remove();
+                }, i * 100);
+            }
+        }
+
+        // Aktualisiere Winner-Message mit Konfetti
+        DominoGame.prototype.showWinnerMessage = function(message) {
+            createConfetti();
+            
+            const winnerDiv = document.createElement('div');
+            winnerDiv.className = 'winner-message';
+            winnerDiv.innerHTML = message + '<br><br><button class="btn btn-new-game" onclick="newGame()">Neues Spiel</button>';
+            document.body.appendChild(winnerDiv);
+            
+            setTimeout(() => {
+                if (winnerDiv.parentNode) {
+                    winnerDiv.parentNode.removeChild(winnerDiv);
+                }
+            }, 8000);
+        };
+    </script>
+</body>
+</html>
